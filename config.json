@@ -1,0 +1,7 @@
+{
+  "currency" : "xdc",
+  "currencyBlacklist": [],
+  "PercProfitToTrigger": 15,
+  "PercToTradeWith": 100,
+  "DemoAccountValue" : 1000
+}
