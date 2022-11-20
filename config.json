@@ -2,6 +2,7 @@
   "currency" : "xdc",
   "currencyBlacklist": [],
   "PercProfitToTrigger": 15,
+  "LogTrades": true,
   "PercToTradeWith": 100,
   "DemoAccountValue" : 1000
 }

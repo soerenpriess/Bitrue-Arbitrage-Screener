@@ -1,5 +1,6 @@
 const express = require("express");
 const fetch = require("node-fetch");
+const fs = require("fs");
 
 const config = require("./config");
 
@@ -8,6 +9,7 @@ const port = 3002;
 let prices;
 let pairs;
 let table;
+let startBalance = (config.DemoAccountValue / 100) * config.PercToTradeWith;
 
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`);
@@ -70,6 +72,7 @@ async function printTable(table){
 async function createTable(price, pair, count) {
     //console.log(pair[count], pair[((pair.length-1)-count)]);
     let estProf = await estimatedProfit(pair[count], pair[((pair.length-1)-count)]);
+    //console.log(estProf)
     table[count] = {StockA: pair[count], PriceA: price[count], StockB: pair[((pair.length-1)-count)], PriceB: price[((price.length-1)-count)], Difference: relDif(price[count], price[((price.length-1)-count)]).toFixed(4) + "%", EstimatedProfit : estProf + " $"};
 }
 
@@ -115,18 +118,21 @@ async function estimatedProfit(stockA, stockB) {
     let stockBSecond = stockB.split("/"[0])[1];
 
     let estValueAfterTrade;
-    let startBalance;
-
-    //todo: create alert when triggerProfit get triggered
     let triggerProfit = config.PercProfitToTrigger;
     let currencyArr = [];
+    let logTrades = config.LogTrades
+    let dateTime
 
     currencyArr[0] = stockAFirst;
     currencyArr[1] = stockASecond;
     currencyArr[2] = stockBFirst;
     currencyArr[3] = stockBSecond;
 
-    startBalance = (config.DemoAccountValue / 100) * config.PercToTradeWith;
+    if(logTrades){
+        let date_ob = new Date();
+        dateTime = date_ob.getFullYear() + "-" + ("0" + (date_ob.getMonth() + 1)).slice(-2) + "-" + ("0" + date_ob.getDate()).slice(-2) + " " + ("0" + (date_ob.getHours())).slice(-2) + ":" + ("0" + (date_ob.getMinutes())).slice(-2) + ":" + ("0" + (date_ob.getSeconds())).slice(-2)
+        var logStream = fs.createWriteStream('log.txt', {flags: 'a'});
+    }
 
     if (stockASecond.toUpperCase() === "USDT".toUpperCase()) {
         let firstTrade = await BitrueOrderBook(stockAFirst + stockASecond);
@@ -134,12 +140,38 @@ async function estimatedProfit(stockA, stockB) {
         let thirdTrade = await BitrueOrderBook(stockBSecond + "usdt");
 
         estValueAfterTrade = ((startBalance / parseFloat(firstTrade.asks[0][0])) * parseFloat(secondTrade.bids[0][0])) * parseFloat(thirdTrade.bids[0][0]);
+
+        if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+        await logStream.write(`       -------------------\n
+        ${dateTime}\n
+        Trade between ${stockA} and ${stockB}\n
+        1: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
+        2: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(secondTrade.bids[0][0])}\n
+        3: ${stockBSecond} - usdt   SELL usdt  Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n
+        Estimated value after Trade: ${estValueAfterTrade} $      Estimated profit: ${estValueAfterTrade - startBalance} $
+        `);
+        await logStream.end('-------------------\n\n');
+        }
+
     } else if (stockBSecond.toUpperCase() === "USDT".toUpperCase()) {
         let firstTrade = await BitrueOrderBook(stockASecond + "usdt");
         let secondTrade = await BitrueOrderBook(stockAFirst + stockASecond);
         let thirdTrade = await BitrueOrderBook(stockBFirst + stockBSecond);
 
         estValueAfterTrade = await (((startBalance / parseFloat(firstTrade.asks[0][0])) / parseFloat(secondTrade.asks[0][0])) * parseFloat(thirdTrade.bids[0][0]));
+
+        if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+        await logStream.write(`       -------------------\n
+        ${dateTime}\n
+        Trade between ${stockA} and ${stockB}\n
+        1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
+        2: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(secondTrade.asks[0][0])}\n
+        3: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n
+        Estimated value after Trade: ${estValueAfterTrade} $      Estimated profit: ${estValueAfterTrade - startBalance} $
+        `);
+        await logStream.end('-------------------\n\n');
+        }
+
     } else {
         let firstTrade = await BitrueOrderBook(stockASecond + "usdt");
         let secondTrade = await BitrueOrderBook(stockAFirst + stockASecond);
@@ -147,8 +179,23 @@ async function estimatedProfit(stockA, stockB) {
         let fourthTrade = await BitrueOrderBook(stockBSecond + "usdt");
 
         estValueAfterTrade = await ((((startBalance / parseFloat(firstTrade.asks[0][0])) / parseFloat(secondTrade.asks[0][0])) * parseFloat(thirdTrade.bids[0][0])) * parseFloat(fourthTrade.bids[0][0]));
+
+        if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+        await logStream.write(`       -------------------\n
+        ${dateTime}\n
+        Trade between ${stockA} and ${stockB}\n
+        1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
+        2: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(secondTrade.asks[0][0])}\n
+        3: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n
+        4: ${stockBSecond} - usdt   SELL usdt  Orderbook price: ${JSON.stringify(fourthTrade.bids[0][0])}\n
+        Estimated value after Trade: ${estValueAfterTrade} $      Estimated profit: ${estValueAfterTrade - startBalance} $
+        `);
+        await logStream.end('-------------------\n\n');
+        }
     }
-    return (estValueAfterTrade - startBalance).toFixed(4);
+    let estimatedProfit = (estValueAfterTrade - startBalance).toFixed(4);
+    if(logTrades) startBalance  = estValueAfterTrade
+    return estimatedProfit
 }
 
 function relDif(stockA, stockB){
