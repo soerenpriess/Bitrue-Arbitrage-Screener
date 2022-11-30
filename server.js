@@ -1,15 +1,18 @@
 const express = require("express");
 const fetch = require("node-fetch");
 const fs = require("fs");
+const TelegramBot = require('node-telegram-bot-api');
 
 const config = require("./config");
 
 const app = express();
 const port = 3002;
+const bot = new TelegramBot(config.Telegram.Token, {polling: true});
 let prices;
 let pairs;
 let table;
 let startBalance = (config.DemoAccountValue / 100) * config.PercToTradeWith;
+let telegramMessageId = config.Telegram.messageId;
 
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`);
@@ -120,7 +123,8 @@ async function estimatedProfit(stockA, stockB) {
     let estValueAfterTrade;
     let triggerProfit = config.PercProfitToTrigger;
     let currencyArr = [];
-    let logTrades = config.LogTrades
+    let logTrades = config.LogTrades;
+    let logTradesTelegram = config.Telegram.sendMessages;
     let dateTime
 
     currencyArr[0] = stockAFirst;
@@ -142,15 +146,25 @@ async function estimatedProfit(stockA, stockB) {
         estValueAfterTrade = ((startBalance / parseFloat(firstTrade.asks[0][0])) * parseFloat(secondTrade.bids[0][0])) * parseFloat(thirdTrade.bids[0][0]);
 
         if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
-        await logStream.write(`       -------------------\n
+        await logStream.write(`        -------------------\n
         ${dateTime}\n
         Trade between ${stockA} and ${stockB}\n
         1: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
         2: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(secondTrade.bids[0][0])}\n
         3: ${stockBSecond} - usdt   SELL usdt  Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n
-        Estimated value after Trade: ${estValueAfterTrade} $      Estimated profit: ${estValueAfterTrade - startBalance} $
+        Estimated value after Trade: ${estValueAfterTrade.toFixed(2)} $      Estimated profit: ${(estValueAfterTrade - startBalance).toFixed(2)} $
         `);
         await logStream.end('-------------------\n\n');
+        }
+
+        if(logTradesTelegram && config.Telegram.Token != "" && telegramMessageId != ""  && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+            bot.sendMessage(telegramMessageId, `-------------------\n${dateTime}\n`+
+            `Trade between ${stockA} and ${stockB}\n`+
+            `1: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n`+
+            `2: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(secondTrade.bids[0][0])}\n`+
+            `3: ${stockBSecond} - usdt   SELL usdt  Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n`+
+            `Estimated value after Trade: ${estValueAfterTrade.toFixed(2)} $      Estimated profit: ${(estValueAfterTrade - startBalance).toFixed(2)} $\n`+
+            `-------------------\n\n`);
         }
 
     } else if (stockBSecond.toUpperCase() === "USDT".toUpperCase()) {
@@ -161,7 +175,7 @@ async function estimatedProfit(stockA, stockB) {
         estValueAfterTrade = await (((startBalance / parseFloat(firstTrade.asks[0][0])) / parseFloat(secondTrade.asks[0][0])) * parseFloat(thirdTrade.bids[0][0]));
 
         if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
-        await logStream.write(`       -------------------\n
+        await logStream.write(`        -------------------\n
         ${dateTime}\n
         Trade between ${stockA} and ${stockB}\n
         1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
@@ -170,6 +184,16 @@ async function estimatedProfit(stockA, stockB) {
         Estimated value after Trade: ${estValueAfterTrade} $      Estimated profit: ${estValueAfterTrade - startBalance} $
         `);
         await logStream.end('-------------------\n\n');
+        }
+
+        if(logTradesTelegram && config.Telegram.Token != "" && telegramMessageId != "" && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+            bot.sendMessage(telegramMessageId, `-------------------\n${dateTime}\n`+
+            `Trade between ${stockA} and ${stockB}\n`+
+            `1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n`+
+            `2: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(secondTrade.bids[0][0])}\n`+
+            `3: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}  Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n`+
+            `Estimated value after Trade: ${estValueAfterTrade.toFixed(2)} $      Estimated profit: ${(estValueAfterTrade - startBalance).toFixed(2)} $\n`+
+            `-------------------\n\n`);
         }
 
     } else {
@@ -181,7 +205,7 @@ async function estimatedProfit(stockA, stockB) {
         estValueAfterTrade = await ((((startBalance / parseFloat(firstTrade.asks[0][0])) / parseFloat(secondTrade.asks[0][0])) * parseFloat(thirdTrade.bids[0][0])) * parseFloat(fourthTrade.bids[0][0]));
 
         if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
-        await logStream.write(`       -------------------\n
+        await logStream.write(`        -------------------\n
         ${dateTime}\n
         Trade between ${stockA} and ${stockB}\n
         1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n
@@ -192,9 +216,20 @@ async function estimatedProfit(stockA, stockB) {
         `);
         await logStream.end('-------------------\n\n');
         }
+
+        if(logTradesTelegram && config.Telegram.Token != "" && telegramMessageId != "" && await diff(estValueAfterTrade, startBalance) >= triggerProfit){
+            bot.sendMessage(telegramMessageId, `-------------------\n${dateTime}\n`+
+            `Trade between ${stockA} and ${stockB}\n`+
+            `1: ${stockASecond} - usdt   BUY ${stockASecond}   Orderbook price: ${JSON.stringify(firstTrade.asks[0][0])}\n`+
+            `2: ${stockAFirst} - ${stockASecond}   BUY ${stockAFirst}   Orderbook price: ${JSON.stringify(secondTrade.asks[0][0])}\n`+
+            `3: ${stockBFirst} - ${stockBSecond}   SELL ${stockBSecond}   Orderbook price: ${JSON.stringify(thirdTrade.bids[0][0])}\n`+
+            `4: ${stockBSecond} - usdt   SELL usdt  Orderbook price: ${JSON.stringify(fourthTrade.bids[0][0])}\n`+
+            `Estimated value after Trade: ${estValueAfterTrade.toFixed(2)} $      Estimated profit: ${(estValueAfterTrade - startBalance).toFixed(2)} $\n`+
+            `-------------------\n\n`);
+        }
     }
     let estimatedProfit = (estValueAfterTrade - startBalance).toFixed(4);
-    if(logTrades) startBalance  = estValueAfterTrade
+    if(logTrades && await diff(estValueAfterTrade, startBalance) >= triggerProfit) startBalance  = estValueAfterTrade
     return estimatedProfit
 }
 
@@ -306,3 +341,10 @@ async function BitrueOrderBook(currency){
         await request();
     });
 }
+
+
+bot.onText(/\/messageId/, (msg) => {
+    config.Telegram.messageId = msg.chat.id;
+    console.log(msg.chat.id)
+    bot.sendMessage(msg.chat.id, "Your messagedId: " + msg.chat.id);
+});

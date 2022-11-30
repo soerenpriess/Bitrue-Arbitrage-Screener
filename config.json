@@ -1,8 +1,13 @@
 {
-  "currency" : "xdc",
+  "currency" : "ltc",
   "currencyBlacklist": [],
-  "PercProfitToTrigger": 15,
+  "PercProfitToTrigger": 10,
   "LogTrades": true,
+  "Telegram": {
+    "Token": "Your-Token",
+    "sendMessages": true,
+    "messageId": "Your-Id"
+  },
   "PercToTradeWith": 100,
   "DemoAccountValue" : 1000
 }
