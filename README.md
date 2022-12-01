@@ -107,3 +107,13 @@ The last row would show our AccountValue after the trade and the resulting profi
 You have been running possible trades for a suitable currency for a long time and logged them in log.txt. Now you've found a good pair and would like to take advantage of this gap.
 You can use the Telegram Bot for this. The Telegram Bot sends you messages that have the same content as the logs in the log.txt. The difference is that you don't have to sit in front of your computer and constantly monitor the progress. As soon as there is a gap to trade, you will immediately receive a message with the pairs to be traded and can execute the trade.
 
+## Updates
+v1.0 = initialisation
+
+v1.1 = Log trades
+
+v1.2 = Telegram Bot log notifications
+
+
+- last Update: 02.12.2022 - DD.MM.YYYY
+
