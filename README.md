@@ -1,9 +1,12 @@
 # Bitrue-Arbitrage-Screener
+![image](https://user-images.githubusercontent.com/56112882/205184606-c912aef8-11bf-4e30-8f8d-55a737048888.png)
 
 No financial advices, for educational purposes only.
 
 This is a screener bot for possible arbitrage gaps.
 It is possible to output the current pairs with the resulting profits/losses. In addition, you can set all parameters yourself and run simulations on the live market. The results are logged in a txt to find the best currency with gaps. Once a vulnerability has been found, the bot can target that currency and notify you via Telegram as soon as an exploitable vulnerability arises.
+
+This program also analyzes the order book prices in order to be able to provide the most accurate information possible. This is necessary because, for example, the price of a currency is $1000 but the next entry in the oderbook to buy is $1010. To counteract this, the base price is not used to calculate the estimated profit, but the next deposited order.
 
 ## Features 💱
       • blacklist unwanted currencies
