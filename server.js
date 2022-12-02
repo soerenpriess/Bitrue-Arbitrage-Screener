@@ -346,5 +346,5 @@ async function BitrueOrderBook(currency){
 bot.onText(/\/messageId/, (msg) => {
     config.Telegram.messageId = msg.chat.id;
     console.log(msg.chat.id)
-    bot.sendMessage(msg.chat.id, "Your messagedId: " + msg.chat.id);
+    bot.sendMessage(msg.chat.id, "Your messageId: " + msg.chat.id);
 });
